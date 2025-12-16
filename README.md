@@ -75,7 +75,7 @@ To let the overlay receive data from the game, you must place a config file in y
    
 9.  Pin the browser using the button on the top right.
 10. Double click anywhere to fullscreen it.
-11. Press Esc or Shift+Tab again to close the Steam layout. (This should remove the icons on the top)
+11. Press Esc or Shift+Tab again to close the Steam layout. (This should remove the icons on the top) (❗❗ DO NOT SKIP THIS ONE OR IT WON'T WORK CORRECTLY ❗❗)
 12. Alt+Tab twice to re-open the CS2
 13. It should work now
 
