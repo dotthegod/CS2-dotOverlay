@@ -52,17 +52,11 @@ To let the overlay receive data from the game, you must place a config file in y
 }
 ```
 
-### Install Dependencies
-Open a terminal in the project folder and run:
-```bash
-npm install
-```
-
 ## 🎮 Usage
 
 ### Running the Overlay
 
-1.  Start the launcher:
+1.  Start the launcher via this command or just open the dotOverlay_1_0.exe
     ```bash
     npm start
     ```
