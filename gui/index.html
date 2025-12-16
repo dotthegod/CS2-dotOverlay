@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>dotOverlay Launcher</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #1e1e1e;
+            color: #ffffff;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            height: 90vh;
+        }
+        h1 { margin-top: 0; }
+        .control-group {
+            background: #2d2d2d;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border: 1px solid #3e3e3e;
+        }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        .row { display: flex; gap: 10px; align-items: center; margin-bottom: 10px; }
+        input[type="text"] {
+            flex: 1;
+            padding: 8px;
+            background: #3c3c3c;
+            border: 1px solid #555;
+            color: white;
+            border-radius: 4px;
+        }
+        button {
+            padding: 8px 16px;
+            cursor: pointer;
+            border: none;
+            border-radius: 4px;
+            font-weight: bold;
+            transition: background 0.2s;
+        }
+        .btn-primary { background-color: #007acc; color: white; }
+        .btn-primary:hover { background-color: #005fa3; }
+        .btn-danger { background-color: #d32f2f; color: white; }
+        .btn-danger:hover { background-color: #b71c1c; }
+        .btn-secondary { background-color: #444; color: white; }
+        .btn-secondary:hover { background-color: #555; }
+        
+        #console-output {
+            flex: 1;
+            background: #000;
+            color: #0f0;
+            font-family: 'Consolas', 'Courier New', monospace;
+            padding: 10px;
+            overflow-y: auto;
+            border-radius: 4px;
+            border: 1px solid #333;
+            white-space: pre-wrap;
+            font-size: 12px;
+        }
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background-color: #555;
+            margin-right: 8px;
+        }
+        .status-running { background-color: #4caf50; box-shadow: 0 0 8px #4caf50; }
+        .status-stopped { background-color: #f44336; }
+    </style>
+</head>
+<body>
+    <h1>dotOverlay Manager</h1>
+
+    <div class="control-group">
+        <label>Kills Asset Folder</label>
+        <div class="row">
+            <input type="text" id="kills-path" placeholder="Default (./kills)" readonly>
+            <button class="btn-secondary" id="btn-browse">Browse...</button>
+        </div>
+        <small style="color: #aaa;">Select the folder containing your kill images and sounds.</small>
+    </div>
+
+    <div class="control-group">
+        <div class="row" style="justify-content: space-between;">
+            <div style="display: flex; align-items: center;">
+                <span id="status-dot" class="status-indicator status-stopped"></span>
+                <span id="status-text">Stopped</span>
+            </div>
+            <div>
+                <button class="btn-primary" id="btn-start">Start Server</button>
+                <button class="btn-danger" id="btn-stop" disabled>Stop Server</button>
+            </div>
+        </div>
+        <div class="row">
+            <button class="btn-secondary" onclick="require('electron').shell.openExternal('http://localhost:3000')">Open Overlay in Browser</button>
+        </div>
+    </div>
+
+    <label>Console Output</label>
+    <div id="console-output"></div>
+
+    <script>
+        const { ipcRenderer } = require('electron');
+        
+        const btnStart = document.getElementById('btn-start');
+        const btnStop = document.getElementById('btn-stop');
+        const btnBrowse = document.getElementById('btn-browse');
+        const inputPath = document.getElementById('kills-path');
+        const consoleOut = document.getElementById('console-output');
+        const statusDot = document.getElementById('status-dot');
+        const statusText = document.getElementById('status-text');
+
+        function log(msg, isError = false) {
+            const span = document.createElement('span');
+            span.textContent = msg; // + '\n';
+            if (isError) span.style.color = '#ff5555';
+            consoleOut.appendChild(span);
+            consoleOut.scrollTop = consoleOut.scrollHeight;
+        }
+
+        btnBrowse.addEventListener('click', () => {
+            ipcRenderer.send('select-folder');
+        });
+
+        ipcRenderer.on('folder-selected', (event, path) => {
+            inputPath.value = path;
+        });
+
+        btnStart.addEventListener('click', () => {
+            const path = inputPath.value;
+            ipcRenderer.send('start-server', path);
+            
+            btnStart.disabled = true;
+            btnStop.disabled = false;
+            statusDot.className = 'status-indicator status-running';
+            statusText.textContent = 'Running';
+            log('Starting server...\n');
+        });
+
+        btnStop.addEventListener('click', () => {
+            ipcRenderer.send('stop-server');
+        });
+
+        ipcRenderer.on('server-stopped', () => {
+            btnStart.disabled = false;
+            btnStop.disabled = true;
+            statusDot.className = 'status-indicator status-stopped';
+            statusText.textContent = 'Stopped';
+            log('Server stopped.\n');
+        });
+
+        ipcRenderer.on('console-log', (event, data) => {
+            log(data);
+        });
+
+        ipcRenderer.on('console-error', (event, data) => {
+            log(data, true);
+        });
+
+        ipcRenderer.on('server-status', (event, msg) => {
+            log(`[System]: ${msg}\n`);
+        });
+    </script>
+</body>
+</html>
