@@ -2,7 +2,7 @@
 
 **dotOverlay** is a highly customizable, feature-rich external overlay for Counter-Strike 2. It uses Valve's Game State Integration (GSI) to display real-time game events with "hype" style feedback, including Street Fighter-style combo counters, MLG hitmarkers, and custom kill banners.
 
-![Overlay Preview](<img width="406" height="341" alt="image" src="https://github.com/user-attachments/assets/3161bdd2-1796-4598-aae4-284834eaf7db" />) *<!-- Replace with actual screenshot -->*
+<img width="406" height="341" alt="image" src="https://github.com/user-attachments/assets/769b84e4-95b7-4120-94b6-089fa5fd735a" />
 
 ## ✨ Features
 
@@ -19,11 +19,11 @@
 
 ## 🚀 Installation
 
-### 1. Prerequisites
+### Prerequisites
 - [Node.js](https://nodejs.org/) (v18 or later recommended)
 - Counter-Strike 2
 
-### 2. Setup CS2 Game State Integration
+### Setup CS2 Game State Integration
 To let the overlay receive data from the game, you must place a config file in your CS2 `cfg` folder.
 
 1.  Navigate to your CS2 cfg folder:
@@ -52,7 +52,7 @@ To let the overlay receive data from the game, you must place a config file in y
 }
 ```
 
-### 3. Install Dependencies
+### Install Dependencies
 Open a terminal in the project folder and run:
 ```bash
 npm install
@@ -61,6 +61,7 @@ npm install
 ## 🎮 Usage
 
 ### Running the Overlay
+
 1.  Start the launcher:
     ```bash
     npm start
@@ -68,8 +69,23 @@ npm install
 2.  The **dotOverlay Manager** window will appear.
 3.  (Optional) Click **Browse** to select a custom folder containing your kill images/sounds.
 4.  Click **Start Server**.
-5.  Click **Open Overlay in Browser** (or manually go to `http://localhost:3000`).
-6.  Add this URL as a **Browser Source** in OBS for streaming, or keep it open on a second monitor.
+5.  Open your game (you can't use fullscreen windowed)
+6.  Open Shift+Tab menu and open web browser
+   <img width="892" height="62" alt="image" src="https://github.com/user-attachments/assets/aa04160e-64e5-4130-bf01-63e48dcd837a" />
+   
+7.  Go to `http://localhost:3000/` in the web browser.
+8.  If you done everything correctly you should be in this page.
+   <img width="1031" height="813" alt="image" src="https://github.com/user-attachments/assets/c6cb90dd-d7dc-403e-bba5-60878e0c121f" />
+   
+9.  Pin the browser using the button on the top right.
+10. Double click anywhere to fullscreen it.
+11. Press Esc or Shift+Tab again to close the Steam layout. (This should remove the icons on the top)
+12. Alt+Tab twice to re-open the CS2
+13. It should work now
+
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/7e6ed381-0e5e-4938-a15c-611487cfef48" />
+
+
 
 ### Customizing Assets (Kills Folder)
 You can provide your own images and sounds for kills. The server looks for files matching this pattern in your selected `kills` folder:
@@ -82,6 +98,21 @@ You can provide your own images and sounds for kills. The server looks for files
 - 3 Kills: `mytheme_3_kills.png`, `mytheme_3_kills_audio.mp3`
 
 *Note: The prefix (e.g., "reaver", "mytheme") does not matter; the system matches based on the number and suffix.*
+
+### Setting up killbanners
+
+After running the script this GUI will appear.
+
+<img width="781" height="587" alt="image" src="https://github.com/user-attachments/assets/3eab6141-bb74-435c-a6f2-d0664143778c" />
+
+In this GUI you should input your killbanner folder to `Kills Asset Folder` section.
+
+I suggest you to use [Valorant killbanners from this website](https://kingdomarchives.com/killbanners).
+
+Your killbanner folder should look like this:
+<img width="192" height="264" alt="image" src="https://github.com/user-attachments/assets/8a5f9e00-e16c-43f2-a01d-5ead860a5b0b" />
+
+
 
 ## ⚙️ Configuration & HUD Layout
 
