@@ -28,17 +28,17 @@ To let the overlay receive data from the game, you must place a config file in y
 
 1.  Navigate to your CS2 cfg folder:
     `C:\Program Files (x86)\Steam\steamapps\common\Counter-Strike Global Offensive\game\csgo\cfg`
-2.  Create a new file named `gamestate_integration_dotoverlay.cfg`.
+2.  Create a new file named `gamestate_integration_custom.cfg`.
 3.  Paste the following content into it:
 
 ```cfg
-"dotOverlay"
+"MyCustomIntegration"
 {
-    "uri" "http://127.0.0.1:3000"
-    "timeout" "5.0"
-    "buffer"  "0.0"
-    "throttle" "0.0"
-    "heartbeat" "30.0"
+    "uri"           "http://127.0.0.1:3000"
+    "timeout"       "5.0"
+    "buffer"        "0.0"
+    "throttle"      "0.0"
+    "heartbeat"     "10.0"
     "data"
     {
         "provider"            "1"
@@ -46,8 +46,10 @@ To let the overlay receive data from the game, you must place a config file in y
         "round"               "1"
         "player_id"           "1"
         "player_state"        "1"
+        "player_weapons"      "1"
         "player_match_stats"  "1"
         "bomb"                "1"
+        "phase_countdowns"    "1"
     }
 }
 ```
