@@ -1,0 +1,47 @@
+{
+  "name": "dot-overlay",
+  "version": "1.0.0",
+  "description": "CS2 Game State Integration Overlay",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build:server": "pkg . --targets node18-win-x64 --output dotOverlay",
+    "dist": "electron-builder --win portable",
+    "dist:installer": "electron-builder --win nsis"
+  },
+  "bin": "server.js",
+  "pkg": {
+    "assets": [
+      "index.html"
+    ]
+  },
+  "dependencies": {
+    "socket.io": "^4.8.1"
+  },
+  "devDependencies": {
+    "electron": "^39.2.7",
+    "electron-builder": "^26.0.12",
+    "pkg": "^5.8.1"
+  },
+  "build": {
+    "appId": "com.dotOverlay.app",
+    "productName": "dotOverlay",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "**/*",
+      "!node_modules/.cache/**",
+      "!kills/**",
+      "!CS2-dotOverlay/**",
+      "!dist/**"
+    ],
+    "win": {
+      "target": [
+        "portable",
+        "nsis"
+      ],
+      "signAndEditExecutable": false
+    }
+  }
+}

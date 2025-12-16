@@ -1,0 +1,1032 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>dotOverlay</title>
+    <style>
+        body {
+            background-color: transparent; /* Transparent background for OBS */
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+            font-family: 'Arial', sans-serif;
+            color: white;
+            text-shadow: 2px 2px 4px #000000;
+        }
+
+        #health-container {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            font-size: 48px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+        }
+
+        #health-icon {
+            margin-right: 10px;
+            color: #ff4444;
+        }
+
+        #health-value {
+            color: #ffffff;
+        }
+
+        /* Street Fighter Style Combo Counter */
+        #round-kills-container {
+            position: absolute;
+            top: 50%;
+            left: 20px;
+            transform: translateY(-50%) skew(-10deg);
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            font-family: 'Impact', sans-serif;
+            opacity: 0; /* Hidden by default until first kill */
+            transition: opacity 0.3s;
+        }
+
+        #round-kills-value {
+            font-size: 120px;
+            line-height: 100px;
+            background: linear-gradient(to bottom, #ffeb3b 0%, #f44336 100%);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            -webkit-text-stroke: 2px white;
+            filter: drop-shadow(4px 4px 0px #000);
+        }
+
+        #round-kills-label {
+            font-size: 40px;
+            color: #ffeb3b;
+            text-transform: uppercase;
+            -webkit-text-stroke: 1px black;
+            text-shadow: 2px 2px 0px #000;
+            margin-left: 5px;
+        }
+
+        /* Kill Image Container */
+        #kill-image-container {
+            position: absolute;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            pointer-events: none;
+        }
+
+        #kill-image {
+            max-height: 300px;
+            opacity: 0;
+            transform: scale(0.5);
+            transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .show-kill-image {
+            opacity: 1 !important;
+            transform: scale(1) !important;
+        }
+
+        /* MLG-style hitmarker (center / crosshair) */
+        #kill-marker {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 72px;
+            height: 72px;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        #kill-marker .km-line {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 34px;
+            height: 4px;
+            background: #ffffff;
+            border-radius: 2px;
+            box-shadow: 0 0 6px rgba(0, 0, 0, 0.65);
+        }
+
+        /* 4 diagonal lines (slight overlap at center to avoid gaps) */
+        #kill-marker .km-line.l1 { transform: translate(-50%, -50%) rotate(45deg) translateX(-14px); }
+        #kill-marker .km-line.l2 { transform: translate(-50%, -50%) rotate(-45deg) translateX(-14px); }
+        #kill-marker .km-line.l3 { transform: translate(-50%, -50%) rotate(-45deg) translateX(14px); }
+        #kill-marker .km-line.l4 { transform: translate(-50%, -50%) rotate(45deg) translateX(14px); }
+
+        .show-kill-marker {
+            animation: killMarkerPop 220ms ease-out forwards;
+        }
+
+        @keyframes killMarkerPop {
+            0% {
+                opacity: 0;
+                transform: translate(-50%, -50%) scale(0.65);
+            }
+            25% {
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(1.0);
+            }
+            100% {
+                opacity: 0;
+                transform: translate(-50%, -50%) scale(1.15);
+            }
+        }
+
+        /* Bomb Timer */
+        #bomb-container {
+            position: absolute;
+            top: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        #bomb-icon {
+            font-size: 48px;
+            color: #ff4444;
+            animation: pulse 1s infinite;
+        }
+
+        #bomb-timer {
+            font-size: 36px;
+            font-weight: bold;
+            color: #ffffff;
+            text-shadow: 2px 2px 4px #000000;
+            margin-top: 5px;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+
+        /* Settings Panel */
+        #settings-panel {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.65);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            padding: 16px 18px;
+            border-radius: 10px;
+            z-index: 5000;
+            min-width: 360px;
+            color: #fff;
+            text-shadow: none;
+            user-select: none;
+        }
+
+        #settings-title {
+            font-weight: 800;
+            font-size: 18px;
+            margin-bottom: 12px;
+        }
+
+        .settings-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin: 10px 0;
+        }
+
+        .settings-row label {
+            font-size: 14px;
+        }
+
+        #volume {
+            width: 180px;
+        }
+
+        #volume-value {
+            font-variant-numeric: tabular-nums;
+            font-size: 13px;
+            opacity: 0.95;
+            min-width: 44px;
+            text-align: right;
+        }
+
+        .settings-hint {
+            margin-top: 10px;
+            font-size: 12px;
+            opacity: 0.85;
+        }
+
+        .hud-movable {
+            cursor: move;
+        }
+
+        .hud-reposition-on {
+            user-select: none;
+        }
+
+        /* Reposition mode controls */
+        #reposition-panel {
+            position: fixed;
+            left: 50%;
+            bottom: 18px;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.70);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            padding: 12px 14px;
+            border-radius: 10px;
+            z-index: 6000;
+            display: none;
+            text-shadow: none;
+            min-width: 360px;
+        }
+
+        #reposition-panel .row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        #btn-save-positions {
+            padding: 8px 12px;
+            border-radius: 6px;
+            border: 1px solid rgba(255,255,255,0.25);
+            background: rgba(255,255,255,0.12);
+            color: #fff;
+        }
+
+        .hud-reposition-on #health-container,
+        .hud-reposition-on #round-kills-container,
+        .hud-reposition-on #kill-image-container,
+        .hud-reposition-on #bomb-container {
+            outline: 2px dashed rgba(255, 255, 255, 0.35);
+            outline-offset: 6px;
+            pointer-events: auto;
+            touch-action: none;
+        }
+
+        /* Force visibility for positioning */
+        .hud-reposition-on #round-kills-container {
+            opacity: 1 !important;
+        }
+
+        .hud-reposition-on #kill-image {
+            opacity: 1 !important;
+            transform: scale(1) !important;
+        }
+
+        .hud-reposition-on #bomb-container {
+            opacity: 1 !important;
+        }
+    </style>
+</head>
+<body>
+    <div id="health-container">
+        <span id="health-icon">♥</span>
+        <span id="health-value">100</span>
+    </div>
+
+    <div id="round-kills-container">
+        <span id="round-kills-value">0</span>
+        <span id="round-kills-label">Kills Combo</span>
+    </div>
+
+    <div id="kill-image-container">
+        <img id="kill-image" alt="">
+    </div>
+
+    <div id="kill-marker">
+        <span class="km-line l1"></span>
+        <span class="km-line l2"></span>
+        <span class="km-line l3"></span>
+        <span class="km-line l4"></span>
+    </div>
+
+    <div id="bomb-container">
+        <span id="bomb-icon">💣</span>
+        <span id="bomb-timer">40.0</span>
+    </div>
+
+    <div id="settings-panel">
+        <div id="settings-title">Settings</div>
+
+        <div class="settings-row">
+            <label for="volume">Kill sound volume</label>
+            <div style="display:flex; align-items:center; gap:10px;">
+                <input id="volume" type="range" min="0" max="100" value="70">
+                <span id="volume-value">70%</span>
+            </div>
+        </div>
+
+        <div class="settings-row">
+            <label for="toggle-sounds">Enable kill sounds</label>
+            <input id="toggle-sounds" type="checkbox" checked>
+        </div>
+
+        <div class="settings-row">
+            <label for="toggle-images">Enable kill images</label>
+            <input id="toggle-images" type="checkbox" checked>
+        </div>
+
+        <div class="settings-row">
+            <label for="toggle-combo">Enable combo counter</label>
+            <input id="toggle-combo" type="checkbox" checked>
+        </div>
+
+        <div class="settings-row">
+            <label for="toggle-health">Show health</label>
+            <input id="toggle-health" type="checkbox" checked>
+        </div>
+
+        <div class="settings-row">
+            <label for="toggle-bomb">Show bomb timer</label>
+            <input id="toggle-bomb" type="checkbox" checked>
+        </div>
+
+        <div class="settings-row">
+            <label for="toggle-hitmarker">Enable hitmarker</label>
+            <input id="toggle-hitmarker" type="checkbox" checked>
+        </div>
+
+        <div class="settings-row">
+            <label>Reposition HUD</label>
+            <button id="btn-reposition" type="button" style="padding: 8px 12px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.25); background: rgba(255,255,255,0.08); color: #fff;">Reposition</button>
+        </div>
+
+        <div class="settings-hint">Double-click toggles fullscreen. Settings hide in fullscreen.</div>
+    </div>
+
+    <div id="reposition-panel">
+        <div class="row">
+            <div style="font-size: 13px; opacity: 0.9;">Drag HUD elements to reposition</div>
+            <button id="btn-save-positions" type="button">Save</button>
+        </div>
+    </div>
+
+    <div id="start-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: flex; justify-content: center; align-items: center; z-index: 9999; cursor: pointer;">
+        <h1 style="font-size: 48px; color: white;">Click Anywhere to Enable Audio</h1>
+    </div>
+
+    <audio id="kill-audio"></audio>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io({
+            transports: ['websocket'], // Force WebSocket for faster updates
+        });
+        const healthValue = document.getElementById('health-value');
+        const healthContainer = document.getElementById('health-container');
+        const roundKillsContainer = document.getElementById('round-kills-container');
+        const roundKillsValue = document.getElementById('round-kills-value');
+        const killImage = document.getElementById('kill-image');
+        const killAudio = document.getElementById('kill-audio');
+        const startOverlay = document.getElementById('start-overlay');
+        const bombContainer = document.getElementById('bomb-container');
+        const bombTimer = document.getElementById('bomb-timer');
+        const bombIcon = document.getElementById('bomb-icon');
+        const killMarker = document.getElementById('kill-marker');
+
+        const settingsPanel = document.getElementById('settings-panel');
+        const volumeSlider = document.getElementById('volume');
+        const volumeValue = document.getElementById('volume-value');
+        const toggleSounds = document.getElementById('toggle-sounds');
+        const toggleImages = document.getElementById('toggle-images');
+        const toggleCombo = document.getElementById('toggle-combo');
+        const toggleHealth = document.getElementById('toggle-health');
+        const toggleBomb = document.getElementById('toggle-bomb');
+        const toggleHitmarker = document.getElementById('toggle-hitmarker');
+        const btnReposition = document.getElementById('btn-reposition');
+        const repositionPanel = document.getElementById('reposition-panel');
+        const btnSavePositions = document.getElementById('btn-save-positions');
+
+        let lastRoundKills = 0;
+        let imageTimeout;
+        let currentRound = 0;
+        let bombInterval;
+        let suppressKillEffectOnce = false;
+
+        // Bomb countdown (local 40s timer)
+        const BOMB_SECONDS = 40.0;
+        let bombPlantedAtMs = null;
+        let lastBombPlanted = false;
+        let bombRafId = null;
+
+        const SETTINGS_KEY = 'dotOverlay_settings_v1';
+        const POS_KEY = 'dotOverlay_positions_v1';
+        const settings = {
+            volume: 0.7,
+            enableSounds: true,
+            enableImages: true,
+            enableCombo: true,
+            enableHealth: true,
+            enableBomb: true,
+            enableHitmarker: true,
+        };
+
+        const hudElements = {
+            health: document.getElementById('health-container'),
+            combo: document.getElementById('round-kills-container'),
+            killBanner: document.getElementById('kill-image-container'),
+            bomb: document.getElementById('bomb-container'),
+        };
+
+        let repositionMode = false;
+        let dragState = null;
+        let repositionEnteredFullscreen = false;
+
+        function clamp01(value) {
+            if (Number.isNaN(value)) return 0;
+            return Math.max(0, Math.min(1, value));
+        }
+
+        function loadSettings() {
+            try {
+                const raw = localStorage.getItem(SETTINGS_KEY);
+                if (!raw) return;
+                const parsed = JSON.parse(raw);
+                if (typeof parsed.volume === 'number') settings.volume = clamp01(parsed.volume);
+                if (typeof parsed.enableSounds === 'boolean') settings.enableSounds = parsed.enableSounds;
+                if (typeof parsed.enableImages === 'boolean') settings.enableImages = parsed.enableImages;
+                if (typeof parsed.enableCombo === 'boolean') settings.enableCombo = parsed.enableCombo;
+                if (typeof parsed.enableHealth === 'boolean') settings.enableHealth = parsed.enableHealth;
+                if (typeof parsed.enableBomb === 'boolean') settings.enableBomb = parsed.enableBomb;
+                if (typeof parsed.enableHitmarker === 'boolean') settings.enableHitmarker = parsed.enableHitmarker;
+            } catch {
+                // ignore
+            }
+        }
+
+        function saveSettings() {
+            try {
+                localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+            } catch {
+                // ignore
+            }
+        }
+
+        function loadPositions() {
+            try {
+                const raw = localStorage.getItem(POS_KEY);
+                if (!raw) return;
+                const parsed = JSON.parse(raw);
+                for (const key of Object.keys(hudElements)) {
+                    const el = hudElements[key];
+                    const pos = parsed && parsed[key];
+                    if (!el || !pos) continue;
+                    if (typeof pos.left !== 'number' || typeof pos.top !== 'number') continue;
+                    // Switch to top/left positioning for moved elements
+                    el.style.left = `${pos.left}px`;
+                    el.style.top = `${pos.top}px`;
+                    // Override stylesheet anchors to avoid stretching (top+bottom) or resizing
+                    el.style.right = 'auto';
+                    el.style.bottom = 'auto';
+
+                    // Restore transform (default to none, keep combo skew)
+                    if (typeof pos.transform === 'string' && pos.transform.length > 0) {
+                        el.style.transform = pos.transform;
+                    } else {
+                        el.style.transform = (el === hudElements.combo) ? 'skew(-10deg)' : 'none';
+                    }
+                }
+            } catch {
+                // ignore
+            }
+        }
+
+        function savePositions() {
+            try {
+                const out = {};
+                for (const key of Object.keys(hudElements)) {
+                    const el = hudElements[key];
+                    if (!el) continue;
+                    const rect = el.getBoundingClientRect();
+                    out[key] = {
+                        left: rect.left,
+                        top: rect.top,
+                        transform: el.style.transform || '',
+                    };
+                }
+                localStorage.setItem(POS_KEY, JSON.stringify(out));
+            } catch {
+                // ignore
+            }
+        }
+
+        function setRepositionMode(on) {
+            repositionMode = on;
+            document.body.classList.toggle('hud-reposition-on', repositionMode);
+
+            // Fullscreen behavior: enter fullscreen when repositioning, exit when saving.
+            if (repositionMode) {
+                repositionEnteredFullscreen = false;
+                if (!document.fullscreenElement && document.documentElement && document.documentElement.requestFullscreen) {
+                    document.documentElement.requestFullscreen()
+                        .then(() => { repositionEnteredFullscreen = true; })
+                        .catch(() => { /* ignore */ });
+                }
+            }
+
+            if (settingsPanel) {
+                settingsPanel.style.display = repositionMode ? 'none' : (document.fullscreenElement ? 'none' : 'block');
+            }
+            if (repositionPanel) {
+                repositionPanel.style.display = repositionMode ? 'block' : 'none';
+            }
+
+            for (const key of Object.keys(hudElements)) {
+                const el = hudElements[key];
+                if (!el) continue;
+                el.classList.toggle('hud-movable', repositionMode);
+            }
+
+            if (!repositionMode) {
+                savePositions();
+                syncSettingsUI();
+                setSettingsPanelVisibilityForFullscreen();
+                if (killImage) {
+                    killImage.classList.remove('show-kill-image');
+                }
+
+                if (repositionEnteredFullscreen && document.fullscreenElement && document.exitFullscreen) {
+                    document.exitFullscreen().catch(() => { /* ignore */ });
+                }
+                repositionEnteredFullscreen = false;
+                return;
+            }
+
+            // Convert HUD elements to top/left anchored so dragging won't stretch them.
+            for (const key of Object.keys(hudElements)) {
+                const el = hudElements[key];
+                if (!el) continue;
+                const rect = el.getBoundingClientRect();
+                el.style.left = `${rect.left}px`;
+                el.style.top = `${rect.top}px`;
+                el.style.right = 'auto';
+                el.style.bottom = 'auto';
+                el.style.height = 'auto';
+
+                if (el === hudElements.combo) {
+                    el.style.transform = 'skew(-10deg)';
+                } else {
+                    // Remove translateX/translateY transforms from default layout
+                    el.style.transform = 'none';
+                }
+            }
+
+            // Reposition mode ON: force HUD preview visible
+            if (healthContainer) healthContainer.style.display = 'flex';
+            if (roundKillsContainer) {
+                roundKillsValue.innerText = String(Math.max(3, lastRoundKills || 0));
+                roundKillsContainer.style.opacity = '1';
+                // Remove translateY centering but keep the skew look
+                roundKillsContainer.style.transform = 'skew(-10deg)';
+            }
+            if (bombContainer) {
+                bombContainer.style.display = 'flex';
+                bombContainer.style.opacity = '1';
+                bombTimer.innerText = '40.0';
+                bombTimer.style.color = '#ffffff';
+                bombIcon.style.animationDuration = '1s';
+            }
+            if (hudElements.killBanner) {
+                hudElements.killBanner.style.display = 'flex';
+            }
+            if (killImage) {
+                killImage.style.display = 'block';
+                killImage.src = '/kill_asset?kind=image&kills=1';
+                killImage.classList.add('show-kill-image');
+            }
+        }
+
+        function syncSettingsUI() {
+            const volumePercent = Math.round(settings.volume * 100);
+            volumeSlider.value = String(volumePercent);
+            volumeValue.innerText = `${volumePercent}%`;
+            toggleSounds.checked = settings.enableSounds;
+            toggleImages.checked = settings.enableImages;
+            toggleCombo.checked = settings.enableCombo;
+            toggleHealth.checked = settings.enableHealth;
+            toggleBomb.checked = settings.enableBomb;
+            if (toggleHitmarker) toggleHitmarker.checked = settings.enableHitmarker;
+
+            killAudio.volume = settings.volume;
+
+            if (healthContainer) {
+                healthContainer.style.display = settings.enableHealth ? 'flex' : 'none';
+            }
+
+            if (bombContainer) {
+                bombContainer.style.display = settings.enableBomb ? 'flex' : 'none';
+                if (!settings.enableBomb) {
+                    bombContainer.style.opacity = '0';
+                }
+            }
+        }
+
+        function setSettingsPanelVisibilityForFullscreen() {
+            if (!settingsPanel) return;
+            if (repositionMode) {
+                settingsPanel.style.display = 'none';
+                return;
+            }
+            settingsPanel.style.display = document.fullscreenElement ? 'none' : 'block';
+        }
+
+        loadSettings();
+        syncSettingsUI();
+        setSettingsPanelVisibilityForFullscreen();
+        loadPositions();
+
+        volumeSlider.addEventListener('input', () => {
+            settings.volume = clamp01(parseInt(volumeSlider.value, 10) / 100);
+            syncSettingsUI();
+            saveSettings();
+        });
+
+        toggleSounds.addEventListener('change', () => {
+            settings.enableSounds = toggleSounds.checked;
+            saveSettings();
+        });
+
+        toggleImages.addEventListener('change', () => {
+            settings.enableImages = toggleImages.checked;
+            saveSettings();
+        });
+
+        toggleCombo.addEventListener('change', () => {
+            settings.enableCombo = toggleCombo.checked;
+            saveSettings();
+        });
+
+        toggleHealth.addEventListener('change', () => {
+            settings.enableHealth = toggleHealth.checked;
+            syncSettingsUI();
+            saveSettings();
+        });
+
+        toggleBomb.addEventListener('change', () => {
+            settings.enableBomb = toggleBomb.checked;
+            syncSettingsUI();
+            saveSettings();
+        });
+
+        toggleHitmarker.addEventListener('change', () => {
+            settings.enableHitmarker = toggleHitmarker.checked;
+            saveSettings();
+        });
+
+        btnReposition.addEventListener('click', () => {
+            setRepositionMode(true);
+        });
+
+        btnSavePositions.addEventListener('click', () => {
+            setRepositionMode(false);
+        });
+
+        function startDrag(targetEl, startEvent) {
+            const rect = targetEl.getBoundingClientRect();
+            dragState = {
+                el: targetEl,
+                startClientX: startEvent.clientX,
+                startClientY: startEvent.clientY,
+                startLeft: rect.left,
+                startTop: rect.top,
+            };
+
+            // Immediately pin to top/left and remove opposing anchors to prevent stretching.
+            targetEl.style.left = `${rect.left}px`;
+            targetEl.style.top = `${rect.top}px`;
+            targetEl.style.right = 'auto';
+            targetEl.style.bottom = 'auto';
+            targetEl.style.height = 'auto';
+
+            // Clear translate-based transforms for intuitive dragging. Keep combo skew.
+            if (targetEl === hudElements.combo) {
+                targetEl.style.transform = 'skew(-10deg)';
+            } else {
+                targetEl.style.transform = 'none';
+            }
+        }
+
+        function onPointerMove(e) {
+            if (!repositionMode || !dragState) return;
+            const dx = e.clientX - dragState.startClientX;
+            const dy = e.clientY - dragState.startClientY;
+            const newLeft = dragState.startLeft + dx;
+            const newTop = dragState.startTop + dy;
+            dragState.el.style.left = `${newLeft}px`;
+            dragState.el.style.top = `${newTop}px`;
+        }
+
+        function onPointerUp() {
+            if (!dragState) return;
+            dragState = null;
+        }
+
+        document.addEventListener('pointermove', onPointerMove);
+        document.addEventListener('pointerup', onPointerUp);
+
+        for (const key of Object.keys(hudElements)) {
+            const el = hudElements[key];
+            if (!el) continue;
+            el.addEventListener('pointerdown', (e) => {
+                if (!repositionMode) return;
+                // Only drag with left mouse button
+                if (e.button !== 0) return;
+                e.preventDefault();
+                e.stopPropagation();
+                try {
+                    el.setPointerCapture(e.pointerId);
+                } catch {
+                    // ignore
+                }
+                startDrag(el, e);
+            });
+        }
+
+        document.addEventListener('fullscreenchange', () => {
+            setSettingsPanelVisibilityForFullscreen();
+        });
+
+        // Click to enable audio context
+        document.body.addEventListener('click', () => {
+            if (startOverlay) {
+                startOverlay.style.display = 'none';
+            }
+        }, { once: true });
+
+        // Double-click to toggle fullscreen
+        document.addEventListener('dblclick', () => {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(e => {
+                    console.error(`Error enabling fullscreen: ${e.message}`);
+                });
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                }
+            }
+        });
+
+        // Test function (expose to console)
+        window.testKill = (kills) => triggerKillEffect(kills);
+
+        function showKillMarker() {
+            if (!killMarker) return;
+            if (!settings.enableHitmarker) return;
+            killMarker.classList.remove('show-kill-marker');
+            void killMarker.offsetWidth; // restart animation
+            killMarker.classList.add('show-kill-marker');
+        }
+
+        socket.on('gameState', (data) => {
+            // Debugging: Log round kills to console
+            if (data.player && data.player.state) {
+                // console.log("Round Kills:", data.player.state.round_kills);
+            }
+
+            if (data.player && data.player.state) {
+                const health = data.player.state.health;
+                if (settings.enableHealth) {
+                    healthValue.innerText = health;
+                }
+
+                // Optional: Change color based on health
+                if (settings.enableHealth) {
+                    if (health <= 20) {
+                        healthValue.style.color = '#ff0000'; // Red
+                    } else if (health <= 50) {
+                        healthValue.style.color = '#ffa500'; // Orange
+                    } else {
+                        healthValue.style.color = '#ffffff'; // White
+                    }
+                }
+
+                // Round Kills Logic
+                if (data.player.state.round_kills !== undefined) {
+                    const currentRoundKills = parseInt(data.player.state.round_kills);
+
+                    // Update the combo counter text
+                    roundKillsValue.innerText = currentRoundKills;
+
+                    // Show/Hide combo counter
+                    if (!settings.enableCombo) {
+                        roundKillsContainer.style.opacity = '0';
+                    } else if (currentRoundKills > 0) {
+                        roundKillsContainer.style.opacity = '1';
+                    } else {
+                        roundKillsContainer.style.opacity = '0';
+                    }
+
+                    // Detect NEW kill
+                    if (!suppressKillEffectOnce && currentRoundKills > lastRoundKills && currentRoundKills > 0) {
+                        console.log(`New Kill Detected! Old: ${lastRoundKills}, New: ${currentRoundKills}`);
+                        triggerKillEffect(currentRoundKills);
+                    }
+
+                    // If we just changed rounds, take the first snapshot but don't fire the effect
+                    if (suppressKillEffectOnce) {
+                        suppressKillEffectOnce = false;
+                    }
+
+                    lastRoundKills = currentRoundKills;
+                }
+            }
+
+            // Track round changes to reset kill counter
+            if (data.map && data.map.round !== undefined) {
+                const round = data.map.round;
+                if (round !== currentRound) {
+                    console.log(`Round changed: ${currentRound} -> ${round}`);
+                    currentRound = round;
+                    // Do not force-set kills to 0; suppress the next update to avoid false triggers
+                    suppressKillEffectOnce = true;
+                }
+            }
+
+            // Bomb Logic (simple local 40s countdown)
+            updateBombTimer(data);
+        });
+
+        function updateBombTimer(data) {
+            if (!bombContainer || !bombTimer || !bombIcon) return;
+
+            if (!settings.enableBomb) {
+                bombContainer.style.opacity = '0';
+                return;
+            }
+
+            // Detect planted state from the payload
+            const roundBomb = data && data.round && data.round.bomb;
+            const bomb = data && data.bomb;
+            const bombState = bomb && bomb.state;
+            const isPlanted = roundBomb === 'planted' || bombState === 'planted';
+
+            // Start timer only when it transitions into planted
+            if (isPlanted && !lastBombPlanted) {
+                bombPlantedAtMs = Date.now();
+                startBombCountdownLoop();
+            }
+
+            // Stop/hide when it transitions out of planted
+            if (!isPlanted && lastBombPlanted) {
+                stopBombCountdownLoop();
+                bombPlantedAtMs = null;
+                bombContainer.style.opacity = '0';
+            }
+
+            lastBombPlanted = isPlanted;
+
+            // If we haven't started yet, keep hidden
+            if (!isPlanted || bombPlantedAtMs === null) {
+                bombContainer.style.opacity = '0';
+                return;
+            }
+
+            // Update immediately (in case raf hasn't ticked yet)
+            const timeRemaining = getBombTimeRemaining();
+            if (timeRemaining <= 0) {
+                bombContainer.style.opacity = '0';
+                return;
+            }
+
+            bombContainer.style.opacity = '1';
+            bombTimer.innerText = timeRemaining.toFixed(1);
+
+            // Change color/speed as it gets closer
+            if (timeRemaining <= 5) {
+                bombTimer.style.color = '#ff0000';
+                bombIcon.style.animationDuration = '0.2s';
+            } else if (timeRemaining <= 10) {
+                bombTimer.style.color = '#ff8800';
+                bombIcon.style.animationDuration = '0.5s';
+            } else {
+                bombTimer.style.color = '#ffffff';
+                bombIcon.style.animationDuration = '1s';
+            }
+        }
+
+        function getBombTimeRemaining() {
+            if (bombPlantedAtMs === null) return 0;
+            const elapsed = (Date.now() - bombPlantedAtMs) / 1000;
+            return Math.max(0, BOMB_SECONDS - elapsed);
+        }
+
+        function startBombCountdownLoop() {
+            stopBombCountdownLoop();
+            const tick = () => {
+                // Only render if still planted and enabled
+                if (!settings.enableBomb || bombPlantedAtMs === null || !lastBombPlanted) {
+                    bombRafId = null;
+                    return;
+                }
+
+                const timeRemaining = getBombTimeRemaining();
+                if (timeRemaining <= 0) {
+                    bombContainer.style.opacity = '0';
+                    bombRafId = null;
+                    return;
+                }
+
+                bombContainer.style.opacity = '1';
+                bombTimer.innerText = timeRemaining.toFixed(1);
+
+                if (timeRemaining <= 5) {
+                    bombTimer.style.color = '#ff0000';
+                    bombIcon.style.animationDuration = '0.2s';
+                } else if (timeRemaining <= 10) {
+                    bombTimer.style.color = '#ff8800';
+                    bombIcon.style.animationDuration = '0.5s';
+                } else {
+                    bombTimer.style.color = '#ffffff';
+                    bombIcon.style.animationDuration = '1s';
+                }
+
+                bombRafId = requestAnimationFrame(tick);
+            };
+
+            bombRafId = requestAnimationFrame(tick);
+        }
+
+        function stopBombCountdownLoop() {
+            if (bombRafId !== null) {
+                cancelAnimationFrame(bombRafId);
+                bombRafId = null;
+            }
+        }
+
+        function triggerKillEffect(kills) {
+            console.log(`Triggering effect for ${kills} kills`);
+
+            // Always show crosshair hitmarker on kill
+            showKillMarker();
+            
+            // Cap at 6 kills max (since you only have files up to 6)
+            const killCount = Math.min(kills, 6);
+            
+            // Load assets without requiring a fixed prefix.
+            // Server resolves:
+            //   image: *_<n>_kill(s).png
+            //   audio: *_<n>_kill(s)_audio.mp3
+            const imagePath = `/kill_asset?kind=image&kills=${killCount}`;
+            const audioPath = `/kill_asset?kind=audio&kills=${killCount}`;
+
+            console.log(`Loading Image: ${imagePath}`);
+            console.log(`Loading Audio: ${audioPath}`);
+
+            // Play Audio
+            if (settings.enableSounds) {
+                killAudio.volume = settings.volume;
+                killAudio.src = audioPath;
+                killAudio.currentTime = 0; // Reset to beginning
+                killAudio.play()
+                    .then(() => console.log("Audio playing..."))
+                    .catch(e => console.error("Audio play failed:", e));
+            }
+
+            // Show Image
+            if (settings.enableImages) {
+                killImage.style.display = 'block'; // Ensure it's visible
+                killImage.src = imagePath;
+
+                killImage.onload = () => {
+                    console.log("Image loaded successfully!");
+                };
+
+                killImage.onerror = () => {
+                    console.error(`Failed to load image: ${imagePath}`);
+                };
+            } else {
+                killImage.classList.remove('show-kill-image');
+                killImage.removeAttribute('src');
+                killImage.style.display = 'none';
+            }
+            
+            // Reset animation
+            if (settings.enableImages) {
+                killImage.classList.remove('show-kill-image');
+                void killImage.offsetWidth; // Trigger reflow
+                killImage.classList.add('show-kill-image');
+
+                // Hide image after 2 seconds
+                clearTimeout(imageTimeout);
+                imageTimeout = setTimeout(() => {
+                    killImage.classList.remove('show-kill-image');
+                }, 2000);
+            }
+        }
+    </script>
+</body>
+</html>
