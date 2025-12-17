@@ -19,10 +19,6 @@
 
 ## 🚀 Installation
 
-### Prerequisites
-- [Node.js](https://nodejs.org/) (v18 or later recommended)
-- Counter-Strike 2
-
 ### Setup CS2 Game State Integration
 To let the overlay receive data from the game, you must place a config file in your CS2 `cfg` folder.
 
@@ -122,6 +118,8 @@ Your killbanner folder should look like this:
 ## 📦 Building (Suggested)
 
 To create a standalone executable for the server (console-only version):
+
+- [Node.js](https://nodejs.org/) (v18 or later recommended)
 
 ```bash
 npm run build
